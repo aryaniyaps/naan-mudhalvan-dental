@@ -1,129 +1,117 @@
-import {
-	Button,
-	Card,
-	Col,
-	Container,
-	Form,
-	InputGroup,
-	Row,
-} from "react-bootstrap";
-import { Link } from "react-router";
-import "../App.css";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router'; // Fixed import to react-router-dom
 
-const LoginPage = () => {
-	return (
-		<Container fluid>
-			<Row className="vh-100">
-				<Col
-					md={6}
-					className="d-none d-md-flex bg-primary align-items-center justify-content-center"
-				>
-					<div className="text-center text-white p-5">
-						<div className="mb-4">
-							<i className="bi bi-tooth fs-1"></i>
-						</div>
-						<h2 className="fw-bold mb-4">
-							Welcome to Dental Management System
-						</h2>
-						<p className="lead mb-5">
-							Manage your dental appointments and services with our easy-to-use
-							platform.
-						</p>
-						<img
-							src="https://placehold.co/600x400/eef/fff?text=Dental+Care"
-							alt="Dental Care"
-							className="img-fluid rounded shadow-sm"
-							style={{ maxWidth: "80%" }}
-						/>
-					</div>
-				</Col>
-				<Col
-					md={6}
-					className="d-flex align-items-center justify-content-center"
-				>
-					<Card
-						className="border-0 shadow-sm p-4"
-						style={{ maxWidth: "450px", width: "100%" }}
-					>
-						<Card.Body className="p-4">
-							<div className="text-center mb-4">
-								<h2 className="fw-bold text-primary">Sign In</h2>
-								<p className="text-muted">
-									Access your dental management account
-								</p>
-							</div>
+const LoginPage: React.FC = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const navigate = useNavigate();
 
-							<Form>
-								<Form.Group controlId="formBasicEmail" className="mb-3">
-									<Form.Label className="fw-medium">Email address</Form.Label>
-									<InputGroup>
-										<InputGroup.Text className="bg-light border-end-0">
-											<i className="bi bi-envelope text-muted"></i>
-										</InputGroup.Text>
-										<Form.Control
-											type="email"
-											placeholder="Enter your email"
-											className="bg-light border-start-0"
-										/>
-									</InputGroup>
-								</Form.Group>
+    // Check if user is already logged in
+    useEffect(() => {
+        const loggedInUser = sessionStorage.getItem('loggedInUser');
+        if (loggedInUser) {
+            // User is already authenticated, redirect to landing page
+            navigate('/');
+        }
+    }, [navigate]);
 
-								<Form.Group controlId="formBasicPassword" className="mb-4">
-									<div className="d-flex justify-content-between">
-										<Form.Label className="fw-medium">Password</Form.Label>
-										<Link
-											to="/forgot-password"
-											className="text-decoration-none small"
-										>
-											Forgot password?
-										</Link>
-									</div>
-									<InputGroup>
-										<InputGroup.Text className="bg-light border-end-0">
-											<i className="bi bi-lock text-muted"></i>
-										</InputGroup.Text>
-										<Form.Control
-											type="password"
-											placeholder="Enter your password"
-											className="bg-light border-start-0"
-										/>
-									</InputGroup>
-								</Form.Group>
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(''); // Clear previous errors
 
-								<Form.Group className="mb-4">
-									<Form.Check
-										type="checkbox"
-										label="Remember me"
-										id="remember-me"
-									/>
-								</Form.Group>
+        try {
+            const storedUsers = localStorage.getItem('dental_users');
+            const users = storedUsers ? JSON.parse(storedUsers) : [];
 
-								<Button
-									variant="primary"
-									type="submit"
-									className="w-100 py-2 mb-3 rounded-pill fw-medium"
-								>
-									Sign In
-								</Button>
+            const user = users.find(
+                (u: any) => u.email === email && u.password === password
+            );
 
-								<div className="text-center">
-									<p className="mb-0 text-muted">
-										Don't have an account?{" "}
-										<Link
-											to="/signup"
-											className="text-decoration-none fw-medium"
-										>
-											Sign up
-										</Link>
-									</p>
-								</div>
-							</Form>
-						</Card.Body>
-					</Card>
-				</Col>
-			</Row>
-		</Container>
-	);
+            if (user) {
+                // Simulate login success - you might want to store a token or user info
+                sessionStorage.setItem('loggedInUser', JSON.stringify({ email: user.email }));
+                console.log('Login successful for:', user.email);
+                // Redirect to a dashboard or home page after login
+                navigate('/'); // Or navigate('/dashboard')
+            } else {
+                setError('Invalid email or password.');
+            }
+        } catch (err) {
+            console.error("Login error:", err);
+            setError('An error occurred during login. Please try again.');
+        }
+    };
+
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+                <div>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        Sign in to your account
+                    </h2>
+                </div>
+                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+                    <input type="hidden" name="remember" defaultValue="true" />
+                    <div className="rounded-md shadow-sm -space-y-px">
+                        <div>
+                            <label htmlFor="email-address" className="sr-only">
+                                Email address
+                            </label>
+                            <input
+                                id="email-address"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                required
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                placeholder="Email address"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="password" className="sr-only">
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autoComplete="current-password"
+                                required
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="text-red-500 text-sm text-center">{error}</div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                        <div className="text-sm">
+                            <Link to="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+                                Don't have an account? Sign up
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button
+                            type="submit"
+                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            Sign in
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
 export default LoginPage;

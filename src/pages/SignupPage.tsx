@@ -1,195 +1,156 @@
-import {
-	Button,
-	Card,
-	Col,
-	Container,
-	Form,
-	InputGroup,
-	Row,
-} from "react-bootstrap";
-import { Link } from "react-router";
-import "../App.css";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router'; // Fixed import to react-router-dom
 
-const SignupPage = () => {
-	return (
-		<Container fluid>
-			<Row className="vh-100">
-				<Col
-					md={6}
-					className="d-flex align-items-center justify-content-center"
-				>
-					<Card
-						className="border-0 shadow-sm p-4"
-						style={{ maxWidth: "500px", width: "100%" }}
-					>
-						<Card.Body className="p-4">
-							<div className="text-center mb-4">
-								<h2 className="fw-bold text-primary">Create Account</h2>
-								<p className="text-muted">
-									Join our dental management platform
-								</p>
-							</div>
+const SignupPage: React.FC = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const navigate = useNavigate();
 
-							<Form>
-								<Row>
-									<Col md={6}>
-										<Form.Group controlId="formFirstName" className="mb-3">
-											<Form.Label className="fw-medium">First Name</Form.Label>
-											<InputGroup>
-												<InputGroup.Text className="bg-light border-end-0">
-													<i className="bi bi-person text-muted"></i>
-												</InputGroup.Text>
-												<Form.Control
-													type="text"
-													placeholder="First name"
-													className="bg-light border-start-0"
-												/>
-											</InputGroup>
-										</Form.Group>
-									</Col>
-									<Col md={6}>
-										<Form.Group controlId="formLastName" className="mb-3">
-											<Form.Label className="fw-medium">Last Name</Form.Label>
-											<Form.Control
-												type="text"
-												placeholder="Last name"
-												className="bg-light"
-											/>
-										</Form.Group>
-									</Col>
-								</Row>
+    // Check if user is already logged in
+    useEffect(() => {
+        const loggedInUser = sessionStorage.getItem('loggedInUser');
+        if (loggedInUser) {
+            // User is already authenticated, redirect to landing page
+            navigate('/');
+        }
+    }, [navigate]);
 
-								<Form.Group controlId="formBasicEmail" className="mb-3">
-									<Form.Label className="fw-medium">Email address</Form.Label>
-									<InputGroup>
-										<InputGroup.Text className="bg-light border-end-0">
-											<i className="bi bi-envelope text-muted"></i>
-										</InputGroup.Text>
-										<Form.Control
-											type="email"
-											placeholder="Enter your email"
-											className="bg-light border-start-0"
-										/>
-									</InputGroup>
-									<Form.Text className="text-muted">
-										We'll never share your email with anyone else.
-									</Form.Text>
-								</Form.Group>
+    const handleSignup = (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setSuccess('');
 
-								<Form.Group controlId="formBasicPhone" className="mb-3">
-									<Form.Label className="fw-medium">Phone Number</Form.Label>
-									<InputGroup>
-										<InputGroup.Text className="bg-light border-end-0">
-											<i className="bi bi-phone text-muted"></i>
-										</InputGroup.Text>
-										<Form.Control
-											type="tel"
-											placeholder="Enter your phone number"
-											className="bg-light border-start-0"
-										/>
-									</InputGroup>
-								</Form.Group>
+        if (password !== confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
 
-								<Form.Group controlId="formBasicPassword" className="mb-3">
-									<Form.Label className="fw-medium">Password</Form.Label>
-									<InputGroup>
-										<InputGroup.Text className="bg-light border-end-0">
-											<i className="bi bi-lock text-muted"></i>
-										</InputGroup.Text>
-										<Form.Control
-											type="password"
-											placeholder="Create a password"
-											className="bg-light border-start-0"
-										/>
-									</InputGroup>
-									<Form.Text className="text-muted">
-										Password must be at least 8 characters long.
-									</Form.Text>
-								</Form.Group>
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters long.');
+            return;
+        }
 
-								<Form.Group
-									controlId="formBasicConfirmPassword"
-									className="mb-4"
-								>
-									<Form.Label className="fw-medium">
-										Confirm Password
-									</Form.Label>
-									<Form.Control
-										type="password"
-										placeholder="Confirm your password"
-										className="bg-light"
-									/>
-								</Form.Group>
+        try {
+            const storedUsers = localStorage.getItem('dental_users');
+            const users = storedUsers ? JSON.parse(storedUsers) : [];
 
-								<Form.Group className="mb-4">
-									<Form.Check
-										type="checkbox"
-										label="I agree to the Terms of Service and Privacy Policy"
-										id="terms-agreement"
-									/>
-								</Form.Group>
+            const existingUser = users.find((u: any) => u.email === email);
+            if (existingUser) {
+                setError('An account with this email already exists.');
+                return;
+            }
 
-								<Button
-									variant="primary"
-									type="submit"
-									className="w-100 py-2 mb-3 rounded-pill fw-medium"
-								>
-									Sign Up
-								</Button>
+            // Add new user (no hashing as requested)
+            const newUser = { email, password };
+            users.push(newUser);
+            localStorage.setItem('dental_users', JSON.stringify(users));
 
-								<div className="text-center">
-									<p className="mb-0 text-muted">
-										Already have an account?{" "}
-										<Link
-											to="/login"
-											className="text-decoration-none fw-medium"
-										>
-											Sign in
-										</Link>
-									</p>
-								</div>
-							</Form>
-						</Card.Body>
-					</Card>
-				</Col>
-				<Col
-					md={6}
-					className="d-none d-md-flex bg-primary align-items-center justify-content-center"
-				>
-					<div className="text-center text-white p-5">
-						<div className="mb-4">
-							<i className="bi bi-shield-plus fs-1"></i>
-						</div>
-						<h2 className="fw-bold mb-4">Trusted Dental Management</h2>
-						<p className="lead mb-4">
-							Join thousands of dental clinics using our platform to streamline
-							their operations.
-						</p>
-						<div className="d-flex justify-content-center gap-4 mb-5">
-							<div className="text-center">
-								<h3 className="fw-bold">1000+</h3>
-								<p>Dental Clinics</p>
-							</div>
-							<div className="text-center">
-								<h3 className="fw-bold">50k+</h3>
-								<p>Appointments</p>
-							</div>
-							<div className="text-center">
-								<h3 className="fw-bold">98%</h3>
-								<p>Satisfaction</p>
-							</div>
-						</div>
-						<img
-							src="https://placehold.co/600x300/eef/fff?text=Dental+Management"
-							alt="Dental Management"
-							className="img-fluid rounded shadow-sm"
-							style={{ maxWidth: "80%" }}
-						/>
-					</div>
-				</Col>
-			</Row>
-		</Container>
-	);
+            setSuccess('Account created successfully! Redirecting to login...');
+            console.log('Signup successful for:', email);
+
+            // Redirect to login page after a short delay
+            setTimeout(() => {
+                navigate('/login');
+            }, 2000);
+
+        } catch (err) {
+            console.error("Signup error:", err);
+            setError('An error occurred during signup. Please try again.');
+        }
+    };
+
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+                <div>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        Create your account
+                    </h2>
+                </div>
+                <form className="mt-8 space-y-6" onSubmit={handleSignup}>
+                    <div className="rounded-md shadow-sm -space-y-px">
+                        <div>
+                            <label htmlFor="email-address" className="sr-only">
+                                Email address
+                            </label>
+                            <input
+                                id="email-address"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                required
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 focus:z-10 sm:text-sm"
+                                placeholder="Email address"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="password" className="sr-only">
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autoComplete="new-password"
+                                required
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-teal-500 focus:border-teal-500 focus:z-10 sm:text-sm"
+                                placeholder="Password (min. 6 characters)"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="confirm-password" className="sr-only">
+                                Confirm Password
+                            </label>
+                            <input
+                                id="confirm-password"
+                                name="confirm-password"
+                                type="password"
+                                autoComplete="new-password"
+                                required
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 focus:z-10 sm:text-sm"
+                                placeholder="Confirm Password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="text-red-500 text-sm text-center">{error}</div>
+                    )}
+                    {success && (
+                        <div className="text-green-600 text-sm text-center">{success}</div>
+                    )}
+
+
+                    <div className="flex items-center justify-between">
+                        <div className="text-sm">
+                            <Link to="/login" className="font-medium text-teal-600 hover:text-teal-500">
+                                Already have an account? Sign in
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button
+                            type="submit"
+                            disabled={!!success} // Disable button after success
+                            className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${success ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            Sign up
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
 export default SignupPage;
