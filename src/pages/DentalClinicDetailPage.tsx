@@ -22,6 +22,18 @@ interface Patient {
 	lastVisit?: string;
 }
 
+interface Treatment {
+	id: number;
+	patientName: string;
+	patientId: number;
+	treatmentType: string;
+	assignedDentist?: string;
+	status: "planned" | "in-progress" | "completed" | "cancelled";
+	startDate: string;
+	endDate?: string;
+	notes: string;
+}
+
 interface DentalClinic {
 	id: string;
 	name: string;
@@ -35,7 +47,7 @@ const DentalClinicDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const [clinic, setClinic] = useState<DentalClinic | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [activeTab, setActiveTab] = useState<"patients" | "appointments">("patients");
+	const [activeTab, setActiveTab] = useState<"patients" | "appointments" | "treatments">("patients");
 
 	// Patient state management
 	const [patients, setPatients] = useState<Patient[]>([]);
@@ -58,6 +70,22 @@ const DentalClinicDetailPage = () => {
 		purpose: "",
 	});
 	const [showNewAppointmentForm, setShowNewAppointmentForm] = useState(false);
+	
+	// Treatment state management
+	const [treatments, setTreatments] = useState<Treatment[]>([]);
+	const [newTreatment, setNewTreatment] = useState({
+		patientName: "",
+		patientId: "",
+		treatmentType: "",
+		assignedDentist: "",
+		status: "planned",
+		startDate: "",
+		endDate: "",
+		notes: "",
+	});
+	const [showNewTreatmentForm, setShowNewTreatmentForm] = useState(false);
+	const [filterPatient, setFilterPatient] = useState<string>("");
+	const [filterStatus, setFilterStatus] = useState<string>("");
 	
 	// Edit clinic state management
 	const [showEditClinicForm, setShowEditClinicForm] = useState(false);
@@ -160,14 +188,40 @@ const DentalClinicDetailPage = () => {
 					},
 				];
 
+				const mockTreatments: Treatment[] = [
+					{
+						id: 1,
+						patientName: "John Doe",
+						patientId: 1,
+						treatmentType: "Root Canal",
+						assignedDentist: "Dr. Sarah Wilson",
+						status: "in-progress",
+						startDate: "2025-04-28",
+						endDate: "2025-05-20",
+						notes: "Upper right molar, significant decay."
+					},
+					{
+						id: 2,
+						patientName: "Jane Smith",
+						patientId: 2,
+						treatmentType: "Scaling",
+						assignedDentist: "Dr. Michael Chen",
+						status: "planned",
+						startDate: "2025-05-16",
+						notes: "Complete cleaning needed due to plaque buildup."
+					}
+				];
+
 				setClinic(mockClinic);
 				setPatients(mockPatients);
 				setAppointments(mockAppointments);
+				setTreatments(mockTreatments);
 				
 				// Store mock data in localStorage for the specific clinic
 				if (id) {
 					localStorage.setItem(`clinic_${id}_patients`, JSON.stringify(mockPatients));
 					localStorage.setItem(`clinic_${id}_appointments`, JSON.stringify(mockAppointments));
+					localStorage.setItem(`clinic_${id}_treatments`, JSON.stringify(mockTreatments));
 				}
 				
 				setLoading(false);
@@ -285,6 +339,73 @@ const DentalClinicDetailPage = () => {
 		localStorage.setItem(`clinic_${id}_appointments`, JSON.stringify(updatedAppointments));
 	};
 
+	// Treatment management functions
+	const handleAddTreatment = () => {
+		if (!newTreatment.patientName || !newTreatment.treatmentType || !newTreatment.startDate || !newTreatment.status) {
+			alert("Please fill all required fields");
+			return;
+		}
+
+		const patientId = patients.find(p => p.name === newTreatment.patientName)?.id || 0;
+		
+		const newId = treatments.length > 0
+			? Math.max(...treatments.map((t) => t.id)) + 1
+			: 1;
+
+		const updatedTreatments = [
+			...treatments,
+			{
+				id: newId,
+				patientName: newTreatment.patientName,
+				patientId: parseInt(newTreatment.patientId) || patientId,
+				treatmentType: newTreatment.treatmentType,
+				assignedDentist: newTreatment.assignedDentist,
+				status: newTreatment.status as "planned" | "in-progress" | "completed" | "cancelled",
+				startDate: newTreatment.startDate,
+				endDate: newTreatment.endDate || undefined,
+				notes: newTreatment.notes
+			}
+		];
+
+		setTreatments(updatedTreatments);
+		localStorage.setItem(`clinic_${id}_treatments`, JSON.stringify(updatedTreatments));
+
+		// Reset form and close modal
+		setNewTreatment({
+			patientName: "",
+			patientId: "",
+			treatmentType: "",
+			assignedDentist: "",
+			status: "planned",
+			startDate: "",
+			endDate: "",
+			notes: "",
+		});
+		setShowNewTreatmentForm(false);
+	};
+
+	const handleDeleteTreatment = (treatmentId: number) => {
+		const updatedTreatments = treatments.filter(treatment => treatment.id !== treatmentId);
+		setTreatments(updatedTreatments);
+		localStorage.setItem(`clinic_${id}_treatments`, JSON.stringify(updatedTreatments));
+	};
+	
+	// Apply filters to treatments
+	const getFilteredTreatments = () => {
+		let filtered = [...treatments];
+		
+		if (filterPatient) {
+			filtered = filtered.filter(treatment => 
+				treatment.patientName.toLowerCase().includes(filterPatient.toLowerCase()));
+		}
+		
+		if (filterStatus) {
+			filtered = filtered.filter(treatment => treatment.status === filterStatus);
+		}
+		
+		return filtered;
+	};
+
 	if (loading) {
 		return (
 			<div className="min-h-screen bg-gray-50 py-8 w-full flex items-center justify-center">
@@ -398,6 +519,16 @@ const DentalClinicDetailPage = () => {
 							}`}
 						>
 							Appointments
+						</button>
+						<button
+							onClick={() => setActiveTab("treatments")}
+							className={`py-4 px-1 border-b-2 font-medium text-sm ${
+								activeTab === "treatments"
+									? "border-blue-500 text-blue-600"
+									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+							}`}
+						>
+							Treatments
 						</button>
 					</nav>
 				</div>
@@ -902,6 +1033,281 @@ const DentalClinicDetailPage = () => {
 								</div>
 							</div>
 						</div>
+					</div>
+				)}
+
+				{/* Treatments Tab Content */}
+				{activeTab === "treatments" && (
+					<div>
+						<div className="flex flex-wrap justify-between items-center mb-6">
+							<h2 className="text-xl font-bold text-gray-900">Treatment Plans</h2>
+							<button
+								onClick={() => setShowNewTreatmentForm(true)}
+								className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+									<path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+								</svg>
+								Create New Treatment
+							</button>
+						</div>
+						
+						{/* Treatment Filters */}
+						<div className="bg-white p-4 rounded-md shadow mb-6">
+							<h3 className="font-medium text-gray-700 mb-3">Filter Treatments</h3>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+								<div>
+									<label htmlFor="filter-patient" className="block text-sm font-medium text-gray-700 mb-1">
+										Patient
+									</label>
+									<input
+										type="text"
+										id="filter-patient"
+										className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+										value={filterPatient}
+										onChange={(e) => setFilterPatient(e.target.value)}
+										placeholder="Filter by patient name"
+									/>
+								</div>
+								<div>
+									<label htmlFor="filter-status" className="block text-sm font-medium text-gray-700 mb-1">
+										Status
+									</label>
+									<select
+										id="filter-status"
+										className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+										value={filterStatus}
+										onChange={(e) => setFilterStatus(e.target.value)}
+									>
+										<option value="">All statuses</option>
+										<option value="planned">Planned</option>
+										<option value="in-progress">In Progress</option>
+										<option value="completed">Completed</option>
+										<option value="cancelled">Cancelled</option>
+									</select>
+								</div>
+							</div>
+						</div>
+						
+						{/* Treatments List */}
+						{treatments.length > 0 ? (
+							getFilteredTreatments().length > 0 ? (
+								<div className="overflow-x-auto">
+									<table className="min-w-full bg-white rounded-lg overflow-hidden">
+										<thead className="bg-gray-100">
+											<tr>
+												<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+												<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Treatment Type</th>
+												<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
+												<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+												<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+												<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+											</tr>
+										</thead>
+										<tbody className="divide-y divide-gray-200">
+											{getFilteredTreatments().map((treatment) => (
+												<tr key={treatment.id} className="hover:bg-gray-50">
+													<td className="px-6 py-4 whitespace-nowrap">
+														<div>
+															<div className="text-sm font-medium text-blue-600 hover:underline cursor-pointer">
+																{treatment.patientName}
+															</div>
+														</div>
+													</td>
+													<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{treatment.treatmentType}</td>
+													<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{treatment.assignedDentist || "—"}</td>
+													<td className="px-6 py-4 whitespace-nowrap">
+														<span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+															treatment.status === 'planned' ? 'bg-yellow-100 text-yellow-800' : 
+															treatment.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 
+															treatment.status === 'completed' ? 'bg-green-100 text-green-800' : 
+															'bg-red-100 text-red-800'
+														}`}>
+															{treatment.status.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+														</span>
+													</td>
+													<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+														<div>
+															<div>Start: {treatment.startDate}</div>
+															{treatment.endDate && <div>End: {treatment.endDate}</div>}
+														</div>
+													</td>
+													<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+														<div className="flex space-x-2">
+															<button
+																onClick={() => handleDeleteTreatment(treatment.id)}
+																className="text-red-600 hover:text-red-900 focus:outline-none"
+															>
+																<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+																	<path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+																</svg>
+															</button>
+														</div>
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							) : (
+								<div className="bg-white rounded-lg shadow-sm p-6 text-center">
+									<p className="text-gray-600 mb-4">No treatments match the selected filters.</p>
+								</div>
+							)
+						) : (
+							<div className="bg-white rounded-lg shadow-sm p-6 text-center">
+								<svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+								</svg>
+								<p className="text-gray-600 mb-4">No treatment plans created for this clinic yet.</p>
+							</div>
+						)}
+
+						{/* Add New Treatment Form Modal */}
+						{showNewTreatmentForm && (
+							<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-40">
+								<div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+									<div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+										<h3 className="text-lg font-medium text-gray-900">Create New Treatment Plan</h3>
+										<button 
+											onClick={() => setShowNewTreatmentForm(false)}
+											className="text-gray-400 hover:text-gray-500 focus:outline-none"
+										>
+											<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+											</svg>
+										</button>
+									</div>
+									<div className="p-6">
+										<div className="mb-4">
+											<label htmlFor="treatment-patient" className="block text-sm font-medium text-gray-700 mb-1">
+												Patient Name *
+											</label>
+											<input
+												type="text"
+												id="treatment-patient"
+												className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+												value={newTreatment.patientName}
+												onChange={(e) => setNewTreatment({ ...newTreatment, patientName: e.target.value })}
+												required
+												list="treatment-patient-list"
+											/>
+											<datalist id="treatment-patient-list">
+												{patients.map(patient => (
+													<option key={patient.id} value={patient.name} />
+												))}
+											</datalist>
+										</div>
+										
+										<div className="mb-4">
+											<label htmlFor="treatment-type" className="block text-sm font-medium text-gray-700 mb-1">
+												Treatment Type *
+											</label>
+											<input
+												type="text"
+												id="treatment-type"
+												className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+												value={newTreatment.treatmentType}
+												onChange={(e) => setNewTreatment({ ...newTreatment, treatmentType: e.target.value })}
+												placeholder="e.g., Root Canal, Scaling, Extraction, etc."
+												required
+											/>
+										</div>
+										
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+											<div>
+												<label htmlFor="treatment-dentist" className="block text-sm font-medium text-gray-700 mb-1">
+													Assigned Dentist
+												</label>
+												<input
+													type="text"
+													id="treatment-dentist"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+													value={newTreatment.assignedDentist}
+													onChange={(e) => setNewTreatment({ ...newTreatment, assignedDentist: e.target.value })}
+												/>
+											</div>
+											<div>
+												<label htmlFor="treatment-status" className="block text-sm font-medium text-gray-700 mb-1">
+													Status *
+												</label>
+												<select
+													id="treatment-status"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+													value={newTreatment.status}
+													onChange={(e) => setNewTreatment({ ...newTreatment, status: e.target.value })}
+													required
+												>
+													<option value="planned">Planned</option>
+													<option value="in-progress">In Progress</option>
+													<option value="completed">Completed</option>
+													<option value="cancelled">Cancelled</option>
+												</select>
+											</div>
+										</div>
+										
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+											<div>
+												<label htmlFor="treatment-start-date" className="block text-sm font-medium text-gray-700 mb-1">
+													Start Date *
+												</label>
+												<input
+													type="date"
+													id="treatment-start-date"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+													value={newTreatment.startDate}
+													onChange={(e) => setNewTreatment({ ...newTreatment, startDate: e.target.value })}
+													required
+												/>
+											</div>
+											<div>
+												<label htmlFor="treatment-end-date" className="block text-sm font-medium text-gray-700 mb-1">
+													Expected End Date
+												</label>
+												<input
+													type="date"
+													id="treatment-end-date"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+													value={newTreatment.endDate}
+													onChange={(e) => setNewTreatment({ ...newTreatment, endDate: e.target.value })}
+												/>
+											</div>
+										</div>
+										
+										<div className="mb-6">
+											<label htmlFor="treatment-notes" className="block text-sm font-medium text-gray-700 mb-1">
+												Notes & Procedures
+											</label>
+											<textarea
+												id="treatment-notes"
+												rows={3}
+												className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+												value={newTreatment.notes}
+												onChange={(e) => setNewTreatment({ ...newTreatment, notes: e.target.value })}
+												placeholder="Add any notes or recommended procedures for this treatment"
+											></textarea>
+										</div>
+										
+										<div className="flex justify-end">
+											<button
+												type="button"
+												onClick={() => setShowNewTreatmentForm(false)}
+												className="mr-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+											>
+												Cancel
+											</button>
+											<button
+												type="button"
+												onClick={handleAddTreatment}
+												className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+											>
+												Create Treatment Plan
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 				)}
 			</div>

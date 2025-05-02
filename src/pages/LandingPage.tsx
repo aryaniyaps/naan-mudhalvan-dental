@@ -177,6 +177,10 @@ const DashboardPage = () => {
 			<footer className="py-6 text-center text-gray-500 mt-12 border-t">
 				<div className="container mx-auto px-4">
 					<p>© 2025 Dental Management System. All rights reserved.</p>
+					<div className="flex justify-center space-x-4 mt-2">
+						<Link to="/terms" className="text-blue-600 hover:underline text-sm">Terms & Conditions</Link>
+						<Link to="/privacy" className="text-blue-600 hover:underline text-sm">Privacy Policy</Link>
+					</div>
 					<p className="text-sm mt-2">Current Date: May 2, 2025</p>
 				</div>
 			</footer>
