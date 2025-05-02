@@ -166,12 +166,6 @@ const DashboardPage = () => {
 										>
 											View Details
 										</Link>
-										<Link 
-											to={`/appointments?clinicId=${clinic.id}`} 
-											className="flex-1 text-center bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition duration-200"
-										>
-											Appointments
-										</Link>
 									</div>
 								</div>
 							</div>
