@@ -34,6 +34,17 @@ interface Treatment {
 	notes: string;
 }
 
+interface Dentist {
+	id: number;
+	name: string;
+	experience: number;
+	speciality: string;
+	salary: number;
+	contact?: string;
+	email?: string;
+	active: boolean;
+}
+
 interface DentalClinic {
 	id: string;
 	name: string;
@@ -47,7 +58,7 @@ const DentalClinicDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const [clinic, setClinic] = useState<DentalClinic | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [activeTab, setActiveTab] = useState<"patients" | "appointments" | "treatments">("patients");
+	const [activeTab, setActiveTab] = useState<"patients" | "appointments" | "treatments" | "dentists">("patients");
 
 	// Patient state management
 	const [patients, setPatients] = useState<Patient[]>([]);
@@ -86,6 +97,24 @@ const DentalClinicDetailPage = () => {
 	const [showNewTreatmentForm, setShowNewTreatmentForm] = useState(false);
 	const [filterPatient, setFilterPatient] = useState<string>("");
 	const [filterStatus, setFilterStatus] = useState<string>("");
+
+	// Dentist state management
+	const [dentists, setDentists] = useState<Dentist[]>([]);
+	const [newDentist, setNewDentist] = useState({
+		name: "",
+		experience: "",
+		speciality: "",
+		salary: "",
+		email: "",
+		contact: "",
+		active: true
+	});
+	const [showNewDentistForm, setShowNewDentistForm] = useState(false);
+	const [showEditDentistForm, setShowEditDentistForm] = useState(false);
+	const [editedDentist, setEditedDentist] = useState<Dentist | null>(null);
+	const [dentistSortField, setDentistSortField] = useState<"name" | "experience" | "speciality" | "salary">("name");
+	const [dentistSortOrder, setDentistSortOrder] = useState<"asc" | "desc">("asc");
+	const [filterSpeciality, setFilterSpeciality] = useState<string>("");
 	
 	// Edit clinic state management
 	const [showEditClinicForm, setShowEditClinicForm] = useState(false);
@@ -128,6 +157,18 @@ const DentalClinicDetailPage = () => {
 						const storedAppointments = localStorage.getItem(`clinic_${id}_appointments`);
 						if (storedAppointments) {
 							setAppointments(JSON.parse(storedAppointments));
+						}
+						
+						// Fetch clinic-specific treatments from localStorage
+						const storedTreatments = localStorage.getItem(`clinic_${id}_treatments`);
+						if (storedTreatments) {
+							setTreatments(JSON.parse(storedTreatments));
+						}
+						
+						// Fetch clinic-specific dentists from localStorage
+						const storedDentists = localStorage.getItem(`clinic_${id}_dentists`);
+						if (storedDentists) {
+							setDentists(JSON.parse(storedDentists));
 						}
 						
 						setLoading(false);
@@ -211,17 +252,52 @@ const DentalClinicDetailPage = () => {
 						notes: "Complete cleaning needed due to plaque buildup."
 					}
 				];
+				
+				const mockDentists: Dentist[] = [
+					{
+						id: 1,
+						name: "Dr. Sarah Wilson",
+						experience: 8,
+						speciality: "Orthodontics",
+						salary: 9500,
+						email: "sarah.wilson@example.com",
+						contact: "555-123-4567",
+						active: true
+					},
+					{
+						id: 2,
+						name: "Dr. Michael Chen",
+						experience: 12,
+						speciality: "Endodontics",
+						salary: 11000,
+						email: "michael.chen@example.com",
+						contact: "555-987-6543",
+						active: true
+					},
+					{
+						id: 3,
+						name: "Dr. Emily Rodriguez",
+						experience: 5,
+						speciality: "Pediatric Dentistry",
+						salary: 8200,
+						email: "emily.rodriguez@example.com",
+						contact: "555-567-8901",
+						active: true
+					}
+				];
 
 				setClinic(mockClinic);
 				setPatients(mockPatients);
 				setAppointments(mockAppointments);
 				setTreatments(mockTreatments);
+				setDentists(mockDentists);
 				
 				// Store mock data in localStorage for the specific clinic
 				if (id) {
 					localStorage.setItem(`clinic_${id}_patients`, JSON.stringify(mockPatients));
 					localStorage.setItem(`clinic_${id}_appointments`, JSON.stringify(mockAppointments));
 					localStorage.setItem(`clinic_${id}_treatments`, JSON.stringify(mockTreatments));
+					localStorage.setItem(`clinic_${id}_dentists`, JSON.stringify(mockDentists));
 				}
 				
 				setLoading(false);
@@ -406,6 +482,110 @@ const DentalClinicDetailPage = () => {
 		return filtered;
 	};
 
+	// Dentist management functions
+	const handleAddDentist = () => {
+		if (!newDentist.name || !newDentist.experience || !newDentist.speciality || !newDentist.salary) {
+			alert("Please fill all required fields");
+			return;
+		}
+
+		const newId = dentists.length > 0
+			? Math.max(...dentists.map((d) => d.id)) + 1
+			: 1;
+
+		const updatedDentists = [
+			...dentists,
+			{
+				id: newId,
+				name: newDentist.name,
+				experience: parseInt(newDentist.experience),
+				speciality: newDentist.speciality,
+				salary: parseInt(newDentist.salary),
+				email: newDentist.email || undefined,
+				contact: newDentist.contact || undefined,
+				active: newDentist.active
+			}
+		];
+
+		setDentists(updatedDentists);
+		localStorage.setItem(`clinic_${id}_dentists`, JSON.stringify(updatedDentists));
+
+		// Reset form and close modal
+		setNewDentist({
+			name: "",
+			experience: "",
+			speciality: "",
+			salary: "",
+			email: "",
+			contact: "",
+			active: true
+		});
+		setShowNewDentistForm(false);
+	};
+
+	const handleEditDentist = () => {
+		if (!editedDentist) return;
+		
+		const updatedDentists = dentists.map(dentist => 
+			dentist.id === editedDentist.id ? editedDentist : dentist
+		);
+		
+		setDentists(updatedDentists);
+		localStorage.setItem(`clinic_${id}_dentists`, JSON.stringify(updatedDentists));
+		setShowEditDentistForm(false);
+	};
+
+	const handleDeleteDentist = (dentistId: number) => {
+		if (window.confirm("Are you sure you want to remove this dentist?")) {
+			const updatedDentists = dentists.filter(dentist => dentist.id !== dentistId);
+			setDentists(updatedDentists);
+			localStorage.setItem(`clinic_${id}_dentists`, JSON.stringify(updatedDentists));
+		}
+	};
+
+	const toggleDentistStatus = (dentistId: number) => {
+		const updatedDentists = dentists.map(dentist => 
+			dentist.id === dentistId ? { ...dentist, active: !dentist.active } : dentist
+		);
+		setDentists(updatedDentists);
+		localStorage.setItem(`clinic_${id}_dentists`, JSON.stringify(updatedDentists));
+	};
+
+	// Apply sorts and filters to dentists
+	const getSortedAndFilteredDentists = () => {
+		let filtered = [...dentists];
+		
+		// Apply filter
+		if (filterSpeciality) {
+			filtered = filtered.filter(dentist => 
+				dentist.speciality.toLowerCase().includes(filterSpeciality.toLowerCase()));
+		}
+		
+		// Apply sort
+		filtered.sort((a, b) => {
+			if (dentistSortField === "name") {
+				return dentistSortOrder === "asc" 
+					? a.name.localeCompare(b.name) 
+					: b.name.localeCompare(a.name);
+			} else if (dentistSortField === "experience") {
+				return dentistSortOrder === "asc" 
+					? a.experience - b.experience 
+					: b.experience - a.experience;
+			} else if (dentistSortField === "speciality") {
+				return dentistSortOrder === "asc" 
+					? a.speciality.localeCompare(b.speciality) 
+					: b.speciality.localeCompare(a.speciality);
+			} else if (dentistSortField === "salary") {
+				return dentistSortOrder === "asc" 
+					? a.salary - b.salary 
+					: b.salary - a.salary;
+			}
+			return 0;
+		});
+		
+		return filtered;
+	};
+
 	if (loading) {
 		return (
 			<div className="min-h-screen bg-gray-50 py-8 w-full flex items-center justify-center">
@@ -529,6 +709,16 @@ const DentalClinicDetailPage = () => {
 							}`}
 						>
 							Treatments
+						</button>
+						<button
+							onClick={() => setActiveTab("dentists")}
+							className={`py-4 px-1 border-b-2 font-medium text-sm ${
+								activeTab === "dentists"
+									? "border-blue-500 text-blue-600"
+									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+							}`}
+						>
+							Dentists
 						</button>
 					</nav>
 				</div>
@@ -1302,6 +1492,462 @@ const DentalClinicDetailPage = () => {
 												className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 											>
 												Create Treatment Plan
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
+					</div>
+				)}
+
+				{/* Dentists Tab Content */}
+				{activeTab === "dentists" && (
+					<div>
+						<div className="flex justify-between items-center mb-6">
+							<h2 className="text-xl font-bold text-gray-900">Dentists</h2>
+							<button
+								onClick={() => setShowNewDentistForm(true)}
+								className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+									<path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+								</svg>
+								Add New Dentist
+							</button>
+						</div>
+
+						{/* Dentist Filters and Sort */}
+						<div className="bg-white p-4 rounded-md shadow mb-6">
+							<div className="flex flex-wrap justify-between">
+								<div className="w-full md:w-auto mb-4 md:mb-0">
+									<h3 className="font-medium text-gray-700 mb-3">Filter & Sort</h3>
+									<div className="flex items-center space-x-2">
+										<input
+											type="text"
+											className="border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+											value={filterSpeciality}
+											onChange={(e) => setFilterSpeciality(e.target.value)}
+											placeholder="Filter by speciality"
+										/>
+									</div>
+								</div>
+								<div className="w-full md:w-auto flex items-end">
+									<div className="mr-4">
+										<label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+										<select
+											className="border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+											value={dentistSortField}
+											onChange={(e) => setDentistSortField(e.target.value as "name" | "experience" | "speciality" | "salary")}
+										>
+											<option value="name">Name</option>
+											<option value="experience">Experience</option>
+											<option value="speciality">Speciality</option>
+											<option value="salary">Salary</option>
+										</select>
+									</div>
+									<div>
+										<label className="block text-sm font-medium text-gray-700 mb-1">Order</label>
+										<select
+											className="border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+											value={dentistSortOrder}
+											onChange={(e) => setDentistSortOrder(e.target.value as "asc" | "desc")}
+										>
+											<option value="asc">Ascending</option>
+											<option value="desc">Descending</option>
+										</select>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Dentists List */}
+						{dentists.length > 0 ? (
+							<div className="overflow-x-auto">
+								<table className="min-w-full bg-white rounded-lg overflow-hidden">
+									<thead className="bg-gray-100">
+										<tr>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience (Years)</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Speciality</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary ($)</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Info</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-gray-200">
+										{getSortedAndFilteredDentists().map((dentist) => (
+											<tr key={dentist.id} className={`hover:bg-gray-50 ${!dentist.active ? 'bg-gray-50' : ''}`}>
+												<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{dentist.name}</td>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{dentist.experience}</td>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{dentist.speciality}</td>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{dentist.salary.toLocaleString()}</td>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+													<div>
+														{dentist.email && <div className="text-blue-600">{dentist.email}</div>}
+														{dentist.contact && <div>{dentist.contact}</div>}
+														{!dentist.email && !dentist.contact && <span className="text-gray-400">—</span>}
+													</div>
+												</td>
+												<td className="px-6 py-4 whitespace-nowrap">
+													<span 
+														className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+															dentist.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+														}`}
+													>
+														{dentist.active ? 'Active' : 'Inactive'}
+													</span>
+												</td>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+													<div className="flex space-x-3">
+														<button
+															onClick={() => {
+																setEditedDentist(dentist);
+																setShowEditDentistForm(true);
+															}}
+															className="text-indigo-600 hover:text-indigo-900 focus:outline-none"
+															title="Edit"
+														>
+															<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828l-11.313 11.313a.5.5 0 01-.707 0l-3.536-3.536a.5.5 0 010-.707l11.313-11.313z" />
+															</svg>
+														</button>
+														<button
+															onClick={() => toggleDentistStatus(dentist.id)}
+															className={`${dentist.active ? 'text-amber-600 hover:text-amber-800' : 'text-emerald-600 hover:text-emerald-800'} focus:outline-none`}
+															title={dentist.active ? "Set as inactive" : "Set as active"}
+														>
+															{dentist.active ? (
+																<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+																	<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+																</svg>
+															) : (
+																<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+																	<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+																</svg>
+															)}
+														</button>
+														<button
+															onClick={() => handleDeleteDentist(dentist.id)}
+															className="text-red-600 hover:text-red-900 focus:outline-none"
+															title="Delete"
+														>
+															<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+																<path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+															</svg>
+														</button>
+													</div>
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+						) : (
+							<div className="bg-white rounded-lg shadow-sm p-6 text-center">
+								<svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+								</svg>
+								<p className="text-gray-600 mb-4">No dentists have been added to this clinic yet.</p>
+							</div>
+						)}
+						
+						{/* Add New Dentist Form Modal */}
+						{showNewDentistForm && (
+							<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-40">
+								<div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+									<div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+										<h3 className="text-lg font-medium text-gray-900">Add New Dentist</h3>
+										<button 
+											onClick={() => setShowNewDentistForm(false)}
+											className="text-gray-400 hover:text-gray-500 focus:outline-none"
+										>
+											<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+											</svg>
+										</button>
+									</div>
+									<div className="p-6">
+										<div className="mb-4">
+											<label htmlFor="dentist-name" className="block text-sm font-medium text-gray-700 mb-1">
+												Full Name *
+											</label>
+											<input
+												type="text"
+												id="dentist-name"
+												className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+												value={newDentist.name}
+												onChange={(e) => setNewDentist({ ...newDentist, name: e.target.value })}
+												placeholder="Dr. Jane Smith"
+												required
+											/>
+										</div>
+										
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+											<div>
+												<label htmlFor="dentist-experience" className="block text-sm font-medium text-gray-700 mb-1">
+													Experience (Years) *
+												</label>
+												<input
+													type="number"
+													id="dentist-experience"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={newDentist.experience}
+													onChange={(e) => setNewDentist({ ...newDentist, experience: e.target.value })}
+													min="0"
+													required
+												/>
+											</div>
+											<div>
+												<label htmlFor="dentist-speciality" className="block text-sm font-medium text-gray-700 mb-1">
+													Speciality *
+												</label>
+												<input
+													type="text"
+													id="dentist-speciality"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={newDentist.speciality}
+													onChange={(e) => setNewDentist({ ...newDentist, speciality: e.target.value })}
+													list="speciality-options"
+													placeholder="Orthodontics"
+													required
+												/>
+												<datalist id="speciality-options">
+													<option value="General Dentistry" />
+													<option value="Orthodontics" />
+													<option value="Periodontics" />
+													<option value="Endodontics" />
+													<option value="Prosthodontics" />
+													<option value="Oral Surgery" />
+													<option value="Pediatric Dentistry" />
+													<option value="Dental Implants" />
+												</datalist>
+											</div>
+										</div>
+										
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+											<div>
+												<label htmlFor="dentist-salary" className="block text-sm font-medium text-gray-700 mb-1">
+													Monthly Salary ($) *
+												</label>
+												<input
+													type="number"
+													id="dentist-salary"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={newDentist.salary}
+													onChange={(e) => setNewDentist({ ...newDentist, salary: e.target.value })}
+													min="0"
+													step="100"
+													required
+												/>
+											</div>
+											<div>
+												<label htmlFor="dentist-email" className="block text-sm font-medium text-gray-700 mb-1">
+													Email
+												</label>
+												<input
+													type="email"
+													id="dentist-email"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={newDentist.email}
+													onChange={(e) => setNewDentist({ ...newDentist, email: e.target.value })}
+													placeholder="doctor@example.com"
+												/>
+											</div>
+										</div>
+										
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+											<div>
+												<label htmlFor="dentist-contact" className="block text-sm font-medium text-gray-700 mb-1">
+													Contact Number
+												</label>
+												<input
+													type="text"
+													id="dentist-contact"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={newDentist.contact}
+													onChange={(e) => setNewDentist({ ...newDentist, contact: e.target.value })}
+													placeholder="555-123-4567"
+												/>
+											</div>
+											<div className="flex items-center h-full mt-8">
+												<input
+													type="checkbox"
+													id="dentist-active"
+													className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+													checked={newDentist.active}
+													onChange={(e) => setNewDentist({ ...newDentist, active: e.target.checked })}
+												/>
+												<label htmlFor="dentist-active" className="ml-2 block text-sm text-gray-900">
+													Active status
+												</label>
+											</div>
+										</div>
+										
+										<div className="flex justify-end mt-6">
+											<button
+												type="button"
+												onClick={() => setShowNewDentistForm(false)}
+												className="mr-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+											>
+												Cancel
+											</button>
+											<button
+												type="button"
+												onClick={handleAddDentist}
+												className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+											>
+												Add Dentist
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
+						
+						{/* Edit Dentist Form Modal */}
+						{showEditDentistForm && editedDentist && (
+							<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-40">
+								<div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+									<div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+										<h3 className="text-lg font-medium text-gray-900">Edit Dentist</h3>
+										<button 
+											onClick={() => setShowEditDentistForm(false)}
+											className="text-gray-400 hover:text-gray-500 focus:outline-none"
+										>
+											<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+											</svg>
+										</button>
+									</div>
+									<div className="p-6">
+										<div className="mb-4">
+											<label htmlFor="edit-dentist-name" className="block text-sm font-medium text-gray-700 mb-1">
+												Full Name *
+											</label>
+											<input
+												type="text"
+												id="edit-dentist-name"
+												className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+												value={editedDentist.name}
+												onChange={(e) => setEditedDentist({ ...editedDentist, name: e.target.value })}
+												required
+											/>
+										</div>
+										
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+											<div>
+												<label htmlFor="edit-dentist-experience" className="block text-sm font-medium text-gray-700 mb-1">
+													Experience (Years) *
+												</label>
+												<input
+													type="number"
+													id="edit-dentist-experience"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={editedDentist.experience}
+													onChange={(e) => setEditedDentist({ ...editedDentist, experience: parseInt(e.target.value) || 0 })}
+													min="0"
+													required
+												/>
+											</div>
+											<div>
+												<label htmlFor="edit-dentist-speciality" className="block text-sm font-medium text-gray-700 mb-1">
+													Speciality *
+												</label>
+												<input
+													type="text"
+													id="edit-dentist-speciality"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={editedDentist.speciality}
+													onChange={(e) => setEditedDentist({ ...editedDentist, speciality: e.target.value })}
+													list="edit-speciality-options"
+													required
+												/>
+												<datalist id="edit-speciality-options">
+													<option value="General Dentistry" />
+													<option value="Orthodontics" />
+													<option value="Periodontics" />
+													<option value="Endodontics" />
+													<option value="Prosthodontics" />
+													<option value="Oral Surgery" />
+													<option value="Pediatric Dentistry" />
+													<option value="Dental Implants" />
+												</datalist>
+											</div>
+										</div>
+										
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+											<div>
+												<label htmlFor="edit-dentist-salary" className="block text-sm font-medium text-gray-700 mb-1">
+													Monthly Salary ($) *
+												</label>
+												<input
+													type="number"
+													id="edit-dentist-salary"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={editedDentist.salary}
+													onChange={(e) => setEditedDentist({ ...editedDentist, salary: parseInt(e.target.value) || 0 })}
+													min="0"
+													step="100"
+													required
+												/>
+											</div>
+											<div>
+												<label htmlFor="edit-dentist-email" className="block text-sm font-medium text-gray-700 mb-1">
+													Email
+												</label>
+												<input
+													type="email"
+													id="edit-dentist-email"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={editedDentist.email || ''}
+													onChange={(e) => setEditedDentist({ ...editedDentist, email: e.target.value || undefined })}
+												/>
+											</div>
+										</div>
+										
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+											<div>
+												<label htmlFor="edit-dentist-contact" className="block text-sm font-medium text-gray-700 mb-1">
+													Contact Number
+												</label>
+												<input
+													type="text"
+													id="edit-dentist-contact"
+													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+													value={editedDentist.contact || ''}
+													onChange={(e) => setEditedDentist({ ...editedDentist, contact: e.target.value || undefined })}
+												/>
+											</div>
+											<div className="flex items-center h-full mt-8">
+												<input
+													type="checkbox"
+													id="edit-dentist-active"
+													className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+													checked={editedDentist.active}
+													onChange={(e) => setEditedDentist({ ...editedDentist, active: e.target.checked })}
+												/>
+												<label htmlFor="edit-dentist-active" className="ml-2 block text-sm text-gray-900">
+													Active status
+												</label>
+											</div>
+										</div>
+										
+										<div className="flex justify-end mt-6">
+											<button
+												type="button"
+												onClick={() => setShowEditDentistForm(false)}
+												className="mr-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+											>
+												Cancel
+											</button>
+											<button
+												type="button"
+												onClick={handleEditDentist}
+												className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+											>
+												Save Changes
 											</button>
 										</div>
 									</div>
