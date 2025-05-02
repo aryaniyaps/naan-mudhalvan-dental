@@ -9,6 +9,13 @@ interface DentalClinic {
 	services: string[];
 }
 
+interface ClinicStats {
+	patients: number;
+	appointments: number;
+	treatments: number;
+	dentists: number;
+}
+
 interface User {
 	email: string;
 }
@@ -16,6 +23,7 @@ interface User {
 const DashboardPage = () => {
 	const [dentalClinics, setDentalClinics] = useState<DentalClinic[]>([]);
 	const [filteredClinics, setFilteredClinics] = useState<DentalClinic[]>([]);
+	const [clinicStats, setClinicStats] = useState<Record<number, ClinicStats>>({});
 	const [searchTerm, setSearchTerm] = useState<string>("");
 	const [user, setUser] = useState<User | null>(null);
 	const navigate = useNavigate();
@@ -41,6 +49,35 @@ const DashboardPage = () => {
 			const clinics = JSON.parse(storedClinics);
 			setDentalClinics(clinics);
 			setFilteredClinics(clinics);
+			
+			// Calculate stats for each clinic from localStorage
+			const stats: Record<number, ClinicStats> = {};
+			clinics.forEach((clinic: DentalClinic) => {
+				// Get patients data
+				const patientsData = localStorage.getItem(`clinic_${clinic.id}_patients`);
+				const patients = patientsData ? JSON.parse(patientsData).length : 0;
+				
+				// Get appointments data
+				const appointmentsData = localStorage.getItem(`clinic_${clinic.id}_appointments`);
+				const appointments = appointmentsData ? JSON.parse(appointmentsData).length : 0;
+				
+				// Get treatments data
+				const treatmentsData = localStorage.getItem(`clinic_${clinic.id}_treatments`);
+				const treatments = treatmentsData ? JSON.parse(treatmentsData).length : 0;
+				
+				// Get dentists data
+				const dentistsData = localStorage.getItem(`clinic_${clinic.id}_dentists`);
+				const dentists = dentistsData ? JSON.parse(dentistsData).length : 0;
+				
+				stats[clinic.id] = {
+					patients,
+					appointments,
+					treatments,
+					dentists
+				};
+			});
+			
+			setClinicStats(stats);
 		} else {
 			// If no dental clinics in localStorage, set default ones and store them
 			const defaultDentalClinics = [
@@ -70,6 +107,65 @@ const DashboardPage = () => {
 			setDentalClinics(defaultDentalClinics);
 			setFilteredClinics(defaultDentalClinics);
 			localStorage.setItem('dental_clinics', JSON.stringify(defaultDentalClinics));
+			
+			// Initialize default stats if no data exists
+			const defaultStats: Record<number, ClinicStats> = {};
+			defaultDentalClinics.forEach((clinic) => {
+				// Set up mock data for the first time
+				const mockPatients = Array.from({ length: Math.floor(Math.random() * 100) + 50 }, (_, i) => ({
+					id: i + 1,
+					name: `Patient ${i + 1}`,
+					age: Math.floor(Math.random() * 50) + 18,
+					gender: ["male", "female", "other"][Math.floor(Math.random() * 3)] as "male" | "female" | "other",
+					contact: `555-${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
+					complaint: "Initial consultation",
+					medicalHistory: "",
+				}));
+				
+				const mockAppointments = Array.from({ length: Math.floor(Math.random() * 60) + 20 }, (_, i) => ({
+					id: i + 1,
+					patientName: `Patient ${Math.floor(Math.random() * mockPatients.length) + 1}`,
+					date: `2025-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+					time: `${String(Math.floor(Math.random() * 8) + 9).padStart(2, '0')}:${Math.random() > 0.5 ? '00' : '30'}`,
+					purpose: "Regular check-up",
+					status: "scheduled"
+				}));
+				
+				const mockTreatments = Array.from({ length: Math.floor(Math.random() * 40) + 10 }, (_, i) => ({
+					id: i + 1,
+					patientName: `Patient ${Math.floor(Math.random() * mockPatients.length) + 1}`,
+					patientId: Math.floor(Math.random() * mockPatients.length) + 1,
+					treatmentType: ["Cleaning", "Root Canal", "Filling", "Extraction"][Math.floor(Math.random() * 4)],
+					status: ["planned", "in-progress", "completed"][Math.floor(Math.random() * 3)] as "planned" | "in-progress" | "completed",
+					startDate: `2025-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+					notes: ""
+				}));
+				
+				const mockDentists = Array.from({ length: Math.floor(Math.random() * 5) + 2 }, (_, i) => ({
+					id: i + 1,
+					name: `Dr. ${["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller"][Math.floor(Math.random() * 7)]}`,
+					experience: Math.floor(Math.random() * 15) + 1,
+					speciality: ["General Dentistry", "Orthodontics", "Periodontics", "Endodontics"][Math.floor(Math.random() * 4)],
+					salary: (Math.floor(Math.random() * 50) + 70) * 100,
+					active: true
+				}));
+				
+				// Store the mock data in localStorage
+				localStorage.setItem(`clinic_${clinic.id}_patients`, JSON.stringify(mockPatients));
+				localStorage.setItem(`clinic_${clinic.id}_appointments`, JSON.stringify(mockAppointments));
+				localStorage.setItem(`clinic_${clinic.id}_treatments`, JSON.stringify(mockTreatments));
+				localStorage.setItem(`clinic_${clinic.id}_dentists`, JSON.stringify(mockDentists));
+				
+				// Set the stats based on the mock data
+				defaultStats[clinic.id] = {
+					patients: mockPatients.length,
+					appointments: mockAppointments.length,
+					treatments: mockTreatments.length,
+					dentists: mockDentists.length
+				};
+			});
+			
+			setClinicStats(defaultStats);
 		}
 	}, [navigate]);
 
@@ -225,6 +321,55 @@ const DashboardPage = () => {
 										</svg>
 										{clinic.address}
 									</p>
+									
+									{/* Clinic Stats Overview */}
+									<div className="grid grid-cols-2 gap-3 mb-4 mt-2">
+										<div className="bg-blue-50 p-2 rounded flex flex-col items-center">
+											<div className="flex items-center mb-1">
+												<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+												</svg>
+												<span className="text-xs font-semibold text-gray-700">Patients</span>
+											</div>
+											<span className="text-blue-700 font-bold">
+												{clinicStats[clinic.id]?.patients || 0}
+											</span>
+										</div>
+										<div className="bg-blue-50 p-2 rounded flex flex-col items-center">
+											<div className="flex items-center mb-1">
+												<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+												</svg>
+												<span className="text-xs font-semibold text-gray-700">Appointments</span>
+											</div>
+											<span className="text-blue-700 font-bold">
+												{clinicStats[clinic.id]?.appointments || 0}
+											</span>
+										</div>
+										<div className="bg-blue-50 p-2 rounded flex flex-col items-center">
+											<div className="flex items-center mb-1">
+												<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+												</svg>
+												<span className="text-xs font-semibold text-gray-700">Treatments</span>
+											</div>
+											<span className="text-blue-700 font-bold">
+												{clinicStats[clinic.id]?.treatments || 0}
+											</span>
+										</div>
+										<div className="bg-blue-50 p-2 rounded flex flex-col items-center">
+											<div className="flex items-center mb-1">
+												<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+												</svg>
+												<span className="text-xs font-semibold text-gray-700">Dentists</span>
+											</div>
+											<span className="text-blue-700 font-bold">
+												{clinicStats[clinic.id]?.dentists || 0}
+											</span>
+										</div>
+									</div>
+									
 									<div className="mb-4">
 										{clinic.services.map((service, index) => (
 											<span
