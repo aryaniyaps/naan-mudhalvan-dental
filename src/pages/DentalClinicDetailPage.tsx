@@ -1728,7 +1728,13 @@ const DentalClinicDetailPage = () => {
 													className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
 													value={newTreatment.assignedDentist}
 													onChange={(e) => setNewTreatment({ ...newTreatment, assignedDentist: e.target.value })}
+													list="treatment-dentist-filter-list"	
 												/>
+												<datalist id="treatment-dentist-filter-list">
+										{dentists.map(dentist => (
+											<option key={dentist.id} value={dentist.name} />
+										))}
+									</datalist>
 											</div>
 											<div>
 												<label htmlFor="treatment-status" className="block text-sm font-medium text-gray-700 mb-1">
